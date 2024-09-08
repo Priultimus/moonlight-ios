@@ -88,21 +88,38 @@ void DrStop(void)
             return @"H.264";
         case VIDEO_FORMAT_H265:
             return @"HEVC";
+        case VIDEO_FORMAT_H265_REXT8_444:
+            return @"HEVC 4:4:4";
         case VIDEO_FORMAT_H265_MAIN10:
             if (LiGetCurrentHostDisplayHdrMode()) {
-                return @"HEVC Main 10 HDR";
+                return @"HEVC 10-bit HDR";
             }
             else {
-                return @"HEVC Main 10 SDR";
+                return @"HEVC 10-bit SDR";
+            }
+        case VIDEO_FORMAT_H265_REXT10_444:
+            if (LiGetCurrentHostDisplayHdrMode()) {
+                return @"HEVC 10-bit HDR 4:4:4";
+            }
+            else {
+                return @"HEVC 10-bit SDR 4:4:4";
             }
         case VIDEO_FORMAT_AV1_MAIN8:
             return @"AV1";
+        case VIDEO_FORMAT_AV1_HIGH8_444:
+            return @"AV1 4:4:4";
         case VIDEO_FORMAT_AV1_MAIN10:
             if (LiGetCurrentHostDisplayHdrMode()) {
                 return @"AV1 10-bit HDR";
             }
             else {
                 return @"AV1 10-bit SDR";
+            }
+        case VIDEO_FORMAT_AV1_HIGH10_444:
+            if (LiGetCurrentHostDisplayHdrMode()) {
+                return @"AV1 10-bit 4:4:4";
+            } else {
+                return @"AV1 10-bit SDR 4:4:4";
             }
         default:
             return @"UNKNOWN";
@@ -418,6 +435,7 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
     _streamConfig.fps = config.frameRate;
     _streamConfig.bitrate = config.bitRate;
     _streamConfig.supportedVideoFormats = config.supportedVideoFormats;
+    printf("supportedVideoFormats: %d\n", _streamConfig.supportedVideoFormats);
     _streamConfig.audioConfiguration = config.audioConfiguration;
     
     // Since we require iOS 12 or above, we're guaranteed to be running

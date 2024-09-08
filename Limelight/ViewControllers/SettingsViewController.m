@@ -21,7 +21,7 @@
 @dynamic overrideUserInterfaceStyle;
 
 static NSString* bitrateFormat = @"Bitrate: %.1f Mbps";
-static const int bitrateTable[] = {
+static const int defaultBitrateTable[] = {
     500,
     1000,
     1500,
@@ -48,24 +48,69 @@ static const int bitrateTable[] = {
     100000,
     120000,
     150000,
+
 };
+// TODO: Find a better way of having these two tables.
+static const int unlockedBitrateTable[] = {
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    4000,
+    5000,
+    6000,
+    7000,
+    8000,
+    9000,
+    10000,
+    12000,
+    15000,
+    18000,
+    20000,
+    30000,
+    40000,
+    50000,
+    60000,
+    70000,
+    80000,
+    100000,
+    120000,
+    150000,
+    200000,
+    250000,
+    300000,
+    350000,
+    400000,
+    450000,
+    500000,
+};
+
 
 const int RESOLUTION_TABLE_SIZE = 7;
 const int RESOLUTION_TABLE_CUSTOM_INDEX = RESOLUTION_TABLE_SIZE - 1;
 CGSize resolutionTable[RESOLUTION_TABLE_SIZE];
 
--(int)getSliderValueForBitrate:(NSInteger)bitrate {
+-(int)getSliderValueForBitrate:(NSInteger)bitrate unlocked:(BOOL)unlocked {
     int i;
-    
-    for (i = 0; i < (sizeof(bitrateTable) / sizeof(*bitrateTable)); i++) {
-        if (bitrate <= bitrateTable[i]) {
-            return i;
+    if (unlocked) {
+        for (i = 0; i < (sizeof(unlockedBitrateTable) / sizeof(*unlockedBitrateTable)); i++) {
+            if (bitrate <= unlockedBitrateTable[i]) {
+                return i;
+            }
+        }
+    } else {
+        for (i = 0; i < (sizeof(defaultBitrateTable) / sizeof(*defaultBitrateTable)); i++) {
+            if (bitrate <= defaultBitrateTable[i]) {
+                return i;
+            }
         }
     }
-    
     // Return the last entry in the table
     return i - 1;
 }
+
 
 // This view is rooted at a ScrollView. To make it scrollable,
 // we'll update content size here.
@@ -138,8 +183,11 @@ BOOL isCustomResolution(CGSize res) {
     TemporarySettings* currentSettings = [dataMan getSettings];
     
     // Ensure we pick a bitrate that falls exactly onto a slider notch
-    _bitrate = bitrateTable[[self getSliderValueForBitrate:[currentSettings.bitrate intValue]]];
-
+    if (currentSettings.unlockBitrate) {
+        _bitrate = unlockedBitrateTable[[self getSliderValueForBitrate:[currentSettings.bitrate intValue] unlocked:true]];
+    } else {
+        _bitrate = defaultBitrateTable[[self getSliderValueForBitrate:[currentSettings.bitrate intValue] unlocked:false]];
+    }
     // Get the size of the screen with and without safe area insets
     UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
     CGFloat screenScale = window.screen.scale;
@@ -239,7 +287,8 @@ BOOL isCustomResolution(CGSize res) {
     else {
         [self.hdrSelector setSelectedSegmentIndex:currentSettings.enableHdr ? 1 : 0];
     }
-    
+    [self.unlockBitrate setSelectedSegmentIndex:currentSettings.unlockBitrate ? 1 : 0];
+    [self.unlockBitrate addTarget:self action:@selector(bitrateUnlocked) forControlEvents:UIControlEventValueChanged];
     [self.touchModeSelector setSelectedSegmentIndex:currentSettings.absoluteTouchMode ? 1 : 0];
     [self.touchModeSelector addTarget:self action:@selector(touchModeChanged) forControlEvents:UIControlEventValueChanged];
     [self.statsOverlaySelector setSelectedSegmentIndex:currentSettings.statsOverlay ? 1 : 0];
@@ -258,8 +307,12 @@ BOOL isCustomResolution(CGSize res) {
     [self.onscreenControlSelector setSelectedSegmentIndex:onscreenControls];
     [self.onscreenControlSelector setEnabled:!currentSettings.absoluteTouchMode];
     [self.bitrateSlider setMinimumValue:0];
-    [self.bitrateSlider setMaximumValue:(sizeof(bitrateTable) / sizeof(*bitrateTable)) - 1];
-    [self.bitrateSlider setValue:[self getSliderValueForBitrate:_bitrate] animated:YES];
+    if (currentSettings.unlockBitrate) {
+        [self.bitrateSlider setMaximumValue:(sizeof(unlockedBitrateTable) / sizeof(*unlockedBitrateTable)) - 1];
+    } else {
+        [self.bitrateSlider setMaximumValue:(sizeof(defaultBitrateTable) / sizeof(*defaultBitrateTable)) - 1];
+    }
+    [self.bitrateSlider setValue:[self getSliderValueForBitrate:_bitrate unlocked:currentSettings.unlockBitrate] animated:YES];
     [self.bitrateSlider addTarget:self action:@selector(bitrateSliderMoved) forControlEvents:UIControlEventValueChanged];
     [self updateBitrateText];
     [self updateResolutionDisplayViewText];
@@ -270,7 +323,23 @@ BOOL isCustomResolution(CGSize res) {
     [self.onscreenControlSelector setEnabled:[self.touchModeSelector selectedSegmentIndex] == 0];
 }
 
-- (void) updateBitrate {
+- (void) bitrateUnlocked {
+    
+    printf("bitrate limit changed\n");
+    if (self.unlockBitrate.selectedSegmentIndex) {
+        printf("unlocked\n");
+        self.bitrateSlider.maximumValue = (sizeof(unlockedBitrateTable) / sizeof(*unlockedBitrateTable)) - 1;
+    } else {
+        printf("locked\n");
+        long _sliderMax = (sizeof(defaultBitrateTable) / sizeof(*defaultBitrateTable)) - 1;
+        if (self.bitrateSlider.value > _sliderMax) {
+            [self updateBitrate];
+        }
+        [self.bitrateSlider setMaximumValue:_sliderMax];
+    }
+}
+
+- (NSInteger) defaultBitrate {
     NSInteger fps = [self getChosenFrameRate];
     NSInteger width = [self getChosenStreamWidth];
     NSInteger height = [self getChosenStreamHeight];
@@ -324,10 +393,22 @@ BOOL isCustomResolution(CGSize res) {
             break;
         }
     }
+    /*
+     if (yuv444) {
+         // This is rough estimation based on the fact that 4:4:4 doubles the amount of raw YUV data compared to 4:2:0
+         resolutionFactor *= 2;
+     }
+     */
 
     defaultBitrate = round(resolutionFactor * frameRateFactor) * 1000;
-    _bitrate = MIN(defaultBitrate, 100000);
-    [self.bitrateSlider setValue:[self getSliderValueForBitrate:_bitrate] animated:YES];
+    return defaultBitrate;
+};
+
+- (void) updateBitrate {
+    
+    _bitrate = MIN(self.defaultBitrate, 100000);
+    
+    [self.bitrateSlider setValue:[self getSliderValueForBitrate:_bitrate unlocked:self.unlockBitrate.selectedSegmentIndex] animated:YES];
     
     [self updateBitrateText];
 }
@@ -457,9 +538,16 @@ BOOL isCustomResolution(CGSize res) {
 }
 
 - (void) bitrateSliderMoved {
-    assert(self.bitrateSlider.value < (sizeof(bitrateTable) / sizeof(*bitrateTable)));
-    _bitrate = bitrateTable[(int)self.bitrateSlider.value];
-    [self updateBitrateText];
+    if (self.unlockBitrate.selectedSegmentIndex) {
+        assert(self.bitrateSlider.value < (sizeof(unlockedBitrateTable) / sizeof(*unlockedBitrateTable)));
+        _bitrate = unlockedBitrateTable[(int)self.bitrateSlider.value];
+        [self updateBitrateText];
+    } else {
+        assert(self.bitrateSlider.value < (sizeof(defaultBitrateTable) / sizeof(*defaultBitrateTable)));
+        _bitrate = defaultBitrateTable[(int)self.bitrateSlider.value];
+        [self updateBitrateText];
+    }
+        
 }
 
 - (void) updateBitrateText {
@@ -528,6 +616,7 @@ BOOL isCustomResolution(CGSize res) {
     NSInteger height = [self getChosenStreamHeight];
     NSInteger width = [self getChosenStreamWidth];
     NSInteger onscreenControls = [self.onscreenControlSelector selectedSegmentIndex];
+    BOOL _unlockBitrate = [self.unlockBitrate selectedSegmentIndex] == 1;
     BOOL optimizeGames = [self.optimizeSettingsSelector selectedSegmentIndex] == 1;
     BOOL multiController = [self.multiControllerSelector selectedSegmentIndex] == 1;
     BOOL swapABXYButtons = [self.swapABXYButtonsSelector selectedSegmentIndex] == 1;
@@ -539,6 +628,7 @@ BOOL isCustomResolution(CGSize res) {
     BOOL statsOverlay = [self.statsOverlaySelector selectedSegmentIndex] == 1;
     BOOL enableHdr = [self.hdrSelector selectedSegmentIndex] == 1;
     [dataMan saveSettingsWithBitrate:_bitrate
+                       unlockBitrate:_unlockBitrate
                            framerate:framerate
                               height:height
                                width:width

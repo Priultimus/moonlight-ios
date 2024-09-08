@@ -53,6 +53,7 @@
 }
 
 - (void) saveSettingsWithBitrate:(NSInteger)bitrate
+                   unlockBitrate:(BOOL)unlockBitrate
                        framerate:(NSInteger)framerate
                           height:(NSInteger)height
                            width:(NSInteger)width
@@ -73,6 +74,7 @@
         Settings* settingsToSave = [self retrieveSettings];
         settingsToSave.framerate = [NSNumber numberWithInteger:framerate];
         settingsToSave.bitrate = [NSNumber numberWithInteger:bitrate];
+        settingsToSave.unlockBitrate = unlockBitrate;
         settingsToSave.height = [NSNumber numberWithInteger:height];
         settingsToSave.width = [NSNumber numberWithInteger:width];
         settingsToSave.audioConfig = [NSNumber numberWithInteger:audioConfig];

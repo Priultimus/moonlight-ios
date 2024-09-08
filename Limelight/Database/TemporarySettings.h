@@ -25,6 +25,7 @@
     CODEC_PREF_HEVC,
     CODEC_PREF_AV1,
 } preferredCodec;
+@property (nonatomic) BOOL unlockBitrate;
 @property (nonatomic) BOOL useFramePacing;
 @property (nonatomic) BOOL multiController;
 @property (nonatomic) BOOL swapABXYButtons;
