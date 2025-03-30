@@ -14,6 +14,7 @@
 @interface DataManager : NSObject
 
 - (void) saveSettingsWithBitrate:(NSInteger)bitrate
+                   unlockBitrate:(BOOL)unlockBitrate
                        framerate:(NSInteger)framerate
                           height:(NSInteger)height
                            width:(NSInteger)width

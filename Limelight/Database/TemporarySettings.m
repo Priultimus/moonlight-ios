@@ -38,6 +38,7 @@
     assert([self.audioConfig intValue] != 0);
     self.preferredCodec = (typeof(self.preferredCodec))[[NSUserDefaults standardUserDefaults] integerForKey:@"preferredCodec"];
     self.useFramePacing = [[NSUserDefaults standardUserDefaults] integerForKey:@"useFramePacing"] != 0;
+    self.unlockBitrate = [[NSUserDefaults standardUserDefaults] boolForKey:@"unlockBitrate"];
     self.playAudioOnPC = [[NSUserDefaults standardUserDefaults] boolForKey:@"audioOnPC"];
     self.enableHdr = [[NSUserDefaults standardUserDefaults] boolForKey:@"enableHdr"];
     self.optimizeGames = [[NSUserDefaults standardUserDefaults] boolForKey:@"optimizeGames"];
@@ -70,6 +71,7 @@
     self.onscreenControls = [NSNumber numberWithInteger:OnScreenControlsLevelOff];
 #else
     self.bitrate = settings.bitrate;
+    self.unlockBitrate = settings.unlockBitrate;
     self.framerate = settings.framerate;
     self.height = settings.height;
     self.width = settings.width;

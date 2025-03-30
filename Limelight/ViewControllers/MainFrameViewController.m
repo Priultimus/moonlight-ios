@@ -689,7 +689,7 @@ static NSMutableSet* hostList;
         
         // HEVC Main10 is supported if the user wants it and the display supports it
         if (streamSettings.enableHdr && (AVPlayer.availableHDRModes & AVPlayerHDRModeHDR10) != 0) {
-            _streamConfig.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+            _streamConfig.supportedVideoFormats |= VIDEO_FORMAT_H265_REXT10_444;
         }
     }
     
